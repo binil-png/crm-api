@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: crm-api
+    runtime: node
+    plan: starter
+    buildCommand: npm install
+    startCommand: node index.js
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: '20'
+      - key: NODE_ENV
+        value: production
+      - key: CORS_ORIGIN
+        value: '*'
