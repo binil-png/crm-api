@@ -37,8 +37,16 @@ const nodeRequest = (event) => ({
   body: requestBody(event),
 });
 
+const isHealthPath = (path) => {
+  const normalized = String(path || '/').replace(/\/+$/, '') || '/';
+  return normalized === '/' || normalized === '/health' || normalized === '/api/health' || normalized.endsWith('/health');
+};
+
 const routeRequest = async (event) => {
   const path = requestPath(event);
+  if (isHealthPath(path)) {
+    return { status: 200, body: { ok: true, service: 'crm-api', time: new Date().toISOString() } };
+  }
   const req = nodeRequest(event);
   if (path.includes('config-sheet')) return handleConfigSheetHttp(req, process.env);
   if (path.includes('push')) return handlePushHttp(req, process.env);

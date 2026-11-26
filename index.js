@@ -49,7 +49,15 @@ const sendJson = (res, result) => {
   res.end(JSON.stringify(result.body ?? {}));
 };
 
-const requestPath = (req) => String(req.url || '/').split('?')[0];
+const requestPath = (req) => String(req.url || '/').split('?')[0].replace(/\/+$/, '') || '/';
+
+const isHealthPath = (path) => path === '/' || path === '/health' || path === '/api/health';
+
+const healthBody = () => ({
+  ok: true,
+  service: 'crm-api',
+  time: new Date().toISOString(),
+});
 
 const server = createServer(async (req, res) => {
   const path = requestPath(req);
@@ -60,8 +68,8 @@ const server = createServer(async (req, res) => {
       res.end();
       return;
     }
-    if (path === '/health' || path === '/api/health') {
-      sendJson(res, { status: 200, body: { ok: true } });
+    if (isHealthPath(path) && (req.method === 'GET' || req.method === 'HEAD')) {
+      sendJson(res, { status: 200, body: healthBody() });
       return;
     }
     if (path === '/api/sheets' || path === '/api/calendar' || path === '/api/google') {
