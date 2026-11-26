@@ -13,3 +13,7 @@ services:
         value: production
       - key: CORS_ORIGIN
         value: '*'
+      - key: GOOGLE_SERVICE_ACCOUNT_EMAIL
+        value: crm-271@pappyjoe-crm.iam.gserviceaccount.com
+      - key: GOOGLE_SERVICE_ACCOUNT_FILE
+        value: /etc/secrets/credentials.json

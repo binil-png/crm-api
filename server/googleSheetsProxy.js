@@ -1,8 +1,8 @@
 import { exec } from 'node:child_process';
 import { createHash, createHmac, createSign } from 'node:crypto';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { basename, join, resolve } from 'node:path';
 import { promisify } from 'node:util';
 
 const execAsync = promisify(exec);
@@ -200,12 +200,29 @@ const accountFingerprint = (env) =>
     env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
   ].join('|');
 
+const secretDirFiles = (dir) => {
+  try {
+    if (!existsSync(dir)) return [];
+    return readdirSync(dir)
+      .filter((name) => name.toLowerCase().endsWith('.json'))
+      .map((name) => join(dir, name));
+  } catch {
+    return [];
+  }
+};
+
 const serviceAccountFileCandidates = (env = process.env) => {
   const files = [];
   const fromEnv = String(env.GOOGLE_SERVICE_ACCOUNT_FILE || '').trim();
-  if (fromEnv) files.push(fromEnv.startsWith('/') ? fromEnv : resolve(process.cwd(), fromEnv));
+  if (fromEnv) {
+    const resolved = fromEnv.startsWith('/') ? fromEnv : resolve(process.cwd(), fromEnv);
+    files.push(resolved);
+    files.push(join('/etc/secrets', basename(fromEnv)));
+  }
   files.push('/etc/secrets/credentials.json');
   files.push('/etc/secrets/google-service-account.json');
+  files.push('/etc/secrets/pappyjoe-crm-c1ce8651f5b1.json');
+  files.push(...secretDirFiles('/etc/secrets'));
   files.push(resolve(process.cwd(), 'credentials.json'));
   files.push(resolve(process.cwd(), 'secrets/pappyjoe-crm-c1ce8651f5b1.json'));
   files.push(resolve(process.cwd(), '../secrets/pappyjoe-crm-c1ce8651f5b1.json'));
@@ -321,7 +338,7 @@ const getServiceToken = async (env) => {
   const account = await loadServiceAccount(env);
   if (!account) {
     throw new Error(
-      `App-level Sheets access is not configured. Set GOOGLE_SERVICE_ACCOUNT_S3_URI (s3://bucket/key.json) or GOOGLE_SERVICE_ACCOUNT_FILE for ${HARDCODED_SERVICE_ACCOUNT_EMAIL}, then share the configuration spreadsheet with that email as Editor.`
+      `App-level Sheets access is not configured on this host. On Render: Environment → Secret Files → add credentials.json (the Google service account JSON). The file is loaded from /etc/secrets/credentials.json. Or set GOOGLE_SERVICE_ACCOUNT_JSON_BASE64. Then share every CRM spreadsheet with ${HARDCODED_SERVICE_ACCOUNT_EMAIL} as Editor.`
     );
   }
   if (tokenCache.token && tokenCache.email === account.email && tokenCache.exp > Date.now() + 60_000) {
